@@ -11,7 +11,7 @@ app.config["DEBUG"] = True
 
 @app.route('/', methods=['GET'])
 def home():
-  return "<h1>Test server for kafka producer</h1>"
+  return "<div><h1>Test server for kafka producer</h1><script src=\"https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js\"></script></div>"
 
 @app.route('/send-message', methods=["POST"])
 def send_message():

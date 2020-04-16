@@ -3,6 +3,11 @@ from json import loads
 from json import dumps
 import asyncio
 import websockets
+import socketio
+
+# ws client
+sio = socketio.Client()
+sio.connect('http://localhost:5001')
 
 consumer = KafkaConsumer(
     'test',
@@ -12,12 +17,8 @@ consumer = KafkaConsumer(
      group_id='my-group',
      value_deserializer=lambda x: loads(x.decode('utf-8')))
 
-async def ws_service(websocket, path):
-    for message in consumer:
-        message = message.value
-        await websocket.send(dumps(message))
-        print(message)
+for message in consumer:
+    message = message.value
+    print(message)
+    sio.emit('my_message', dumps(message))
 
-start_server = websockets.serve(ws_service, 'localhost', 8765)
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
