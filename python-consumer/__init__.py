@@ -7,7 +7,7 @@ import socketio
 
 # ws client
 sio = socketio.Client()
-sio.connect('http://localhost:5001')
+sio.connect('http://localhost:5001', headers={"x-rh-tenant": "some-tenant-identifier"}, transports="websocket")
 
 consumer = KafkaConsumer(
     'test',

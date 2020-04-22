@@ -1,6 +1,6 @@
 from kafka import KafkaProducer
 import flask
-from flask import request
+from flask import request, send_from_directory
 import json
 
 # create kafka producer
@@ -11,7 +11,7 @@ app.config["DEBUG"] = True
 
 @app.route('/', methods=['GET'])
 def home():
-  return "<div><h1>Test server for kafka producer</h1><script src=\"https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js\"></script></div>"
+  return send_from_directory('./', 'index.html')
 
 @app.route('/send-message', methods=["POST"])
 def send_message():

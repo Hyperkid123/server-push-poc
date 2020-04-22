@@ -1,5 +1,6 @@
 import eventlet
 import socketio
+from json import loads
 
 # create a Socket.IO server
 sio = socketio.Server()
@@ -13,12 +14,17 @@ app = socketio.WSGIApp(sio)
 
 @sio.event
 def connect(sid, environ):
-    print('connect ', sid)
+    sio.enter_room(sid, environ["HTTP_X_RH_TENANT"]) 
 
 @sio.event
 def my_message(sid, data):
-    print('message ', data)
-    sio.emit('my-message', data=data)
+    print('message ', loads(data))
+    message = loads(data)
+    if 'tenant-scope' in message:
+        sio.emit('my-message', data=data, room=message["tenant-scope"])
+    else:
+        sio.emit('my-message', data=data)
+        
 
 @sio.event
 def disconnect(sid):

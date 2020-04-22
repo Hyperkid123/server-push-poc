@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <input type="text" placeholder="tenant name" id="tenant-name" />
+  <div>
+    <ul id="clients"></ul>
+    <button onclick="addClient()">Add client with separate tenant</button>
+    <h1>To send a message paste following code to browser console and add some tenant-scope</h1>
+    <pre>
+      fetch('/send-message', {
+        method: 'POST',
+        body: JSON.stringify({name: 'different source', foo : 'bar', 'tenant-scope': 'tenant-15'})
+      }).then(data => data.json()).then(console.log)
+    </pre>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+  <script>
+    const clients = []
+    let tenantName = 'tenant-1'
+    const tenantInput = document.getElementById('tenant-name');
+    tenantInput.addEventListener('change', function(event) {
+      tenantName = event.target.value
+      console.log(tenantName)
+    })
+    tenantInput.value = tenantName;
+
+    function addClient(){
+      const socket = io('http://localhost:5001', {
+          transportOptions: {
+            polling: {
+              extraHeaders: {
+                    'x-rh-tenant': tenantName
+                  }
+              }
+            }
+          })
+      socket.on('my-message', data => {
+        console.log(`socket with tenant ${JSON.parse(data)['tenant-scope']} received message: `, JSON.parse(data))
+        updateContents(JSON.parse(data))
+      })
+      clients.push({
+        tenantName,
+        clientId: tenantName,
+        socket
+      })
+      renderClients()
+    }
+
+    function updateContents(data) {
+      const id = data['tenant-scope'];
+      if(id) {
+        const user = document.getElementById(id);
+        const messages = user.getElementsByClassName('data')
+        Array.from(messages).forEach(message => user.removeChild(message))
+        const message = document.createElement('pre');
+        message.className = 'data';
+        message.innerHTML = JSON.stringify(data, null, 2)
+        user.appendChild(message)
+        console.log(user, messages)
+      }
+    }
+
+    function renderClients() {
+      const list = document.getElementById('clients')
+      list.innerHTML = ''
+      clients.forEach(client => {
+        const child = document.createElement('li')
+        child.setAttribute('id', client.clientId)
+        const clientControl = document.createElement('div');
+        clientControl.innerHTML = `I am a client from tenant ${client.clientId}`
+        child.appendChild(clientControl)
+        list.appendChild(child)
+      })
+    }
+  </script>
+</body>
+</html>
