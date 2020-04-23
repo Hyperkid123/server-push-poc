@@ -16,15 +16,16 @@ class EventsConsumer(object):
         self.consumer = KafkaConsumer(
             'test',
             bootstrap_servers=['localhost:9092'],
-            enable_auto_commit=True,
-            group_id='my-group',
             value_deserializer=lambda x: json.loads(x.decode('utf-8')))
+
+    def __del__(self):
+        print('destructor')
     
     def listen(self):
         logging.info('starting the listen thread')
         for message in self.consumer:
             message = message.value
-            
+            print(message)
             self.event_publisher.emit_broadcast(message, message['tenant-scope'])
 
     def start(self):
@@ -57,6 +58,8 @@ class EventPublisher(object):
         Emits event only to a single user
         """
         str_data = str(data)
+        queue.put('event: my_message')
+        queue.put('\n')
         for line in str_data.split('\n'):
             queue.put('data: {}\n'.format(line))
         queue.put('\n')
@@ -67,12 +70,15 @@ class EventPublisher(object):
         '''
         print(data)
         print(channel)
+        print(self.get_channel_users(channel))
         if callable(data):
+            print('data is calable')
             for queue, properties in self.get_channel_users(channel):
                 value = data(properties)
                 if value:
                     self.emit_single_user(value, queue)
         else:
+            print('data is in else branch')
             for queue, _ in self.get_channel_users(channel):
                 self.emit_single_user(data, queue)
 
@@ -94,6 +100,7 @@ class EventPublisher(object):
         '''
         add user to channles
         '''
+        print('channel wrhile adding user: ' + channel)
         self.users_by_channel['broadcast'].append(subscriber)
         self.users_by_channel[channel].append(subscriber)
 
