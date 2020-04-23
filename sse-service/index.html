@@ -6,6 +6,52 @@
   <title>Document</title>
 </head>
 <body>
-  <h1>There will be SSE demo</h1>
+  <h1>SSE DEMO</h1>
+  <div id="tenant-setup">
+    <label for="tenant-name">
+      Tenant name
+    </label>
+    <input id="tenant-name" placeholder="Insert your tenant name" type="text" />
+    <button onclick="connect()">Connect</button>
+  </div>
+  <div id="messages-content" style="visibility: hidden;">
+    <h2>Message with id my_message</h2>
+    <div id="tenant-message">
+    </div>
+    <h2>Global message withouth namespace</h2>
+    <div id="global-message">
+    </div>
+  </div>
+  <script>
+    const tenantInput = document.getElementById('tenant-name')
+    let tenantName
+    let eventSource
+    tenantInput.addEventListener('change', function(event) {
+      tenantName = event.target.value
+    })
+    function myMessageEventHandler(event) {
+      if(event.data) {
+        console.log(event);
+        const data = JSON.parse(event.data)
+        document.getElementById('tenant-message').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`
+      }
+    }
+    function globalMessageHanler(event) {
+      if(event.data) {
+        const data = JSON.parse(event.data)
+        document.getElementById('global-message').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`
+      }
+    }
+    function connect() {
+      if(!tenantName || tenantName === '') {
+        return alert('Choose your tenant name')
+      }
+      eventSource = new EventSource(`/subscribe?username=martin&channel=${tenantName}`)
+      eventSource.onmessage = globalMessageHanler;
+      eventSource.addEventListener('my_message', myMessageEventHandler)
+      document.getElementById('tenant-setup').style.visibility = "hidden"
+      document.getElementById('messages-content').style.visibility = "visible"
+    }
+  </script>
 </body>
 </html>

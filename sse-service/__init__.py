@@ -57,12 +57,12 @@ class EventPublisher(object):
         """
         Emits event only to a single user
         """
-        str_data = str(data)
+        str_data = json.dumps(data)
+        print('string json' + str_data)
         queue.put('event: my_message')
         queue.put('\n')
-        for line in str_data.split('\n'):
-            queue.put('data: {}\n'.format(line))
-        queue.put('\n')
+        queue.put('data: ' + str_data)
+        queue.put('\n\n')
 
     def emit_broadcast(self, data, channel='broadcast'):
         '''
