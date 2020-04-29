@@ -6,9 +6,12 @@ import logging
 from queue import Queue
 from collections import defaultdict
 from kafka import KafkaConsumer
+from flask_cors import CORS, cross_origin
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
+logging.getLogger('flask_cors').level = logging.DEBUG
+CORS(app, resources={r"*": {"origins": "*"}})
 
 class EventsConsumer(object):
     def __init__(self, event_publisher):
@@ -17,19 +20,14 @@ class EventsConsumer(object):
             'test',
             bootstrap_servers=['localhost:9092'],
             value_deserializer=lambda x: json.loads(x.decode('utf-8')))
-
-    def __del__(self):
-        print('destructor')
     
     def listen(self):
         logging.info('starting the listen thread')
         for message in self.consumer:
             message = message.value
-            print(message)
-            self.event_publisher.emit_broadcast(message, message['tenant-scope'])
+            self.event_publisher.emit_broadcast(message, message['external_tenant'])
 
     def start(self):
-        print('starting the kafka consumer')
         '''
         create new thread to avoid blocking the flask server
         '''
@@ -57,9 +55,9 @@ class EventPublisher(object):
         """
         Emits event only to a single user
         """
+        event_id = data["event"]
         str_data = json.dumps(data)
-        print('string json' + str_data)
-        queue.put('event: my_message')
+        queue.put('event: ' + event_id)
         queue.put('\n')
         queue.put('data: ' + str_data)
         queue.put('\n\n')
@@ -68,17 +66,12 @@ class EventPublisher(object):
         '''
         global emitor for every connected user to a channel
         '''
-        print(data)
-        print(channel)
-        print(self.get_channel_users(channel))
         if callable(data):
-            print('data is calable')
             for queue, properties in self.get_channel_users(channel):
                 value = data(properties)
                 if value:
                     self.emit_single_user(value, queue)
         else:
-            print('data is in else branch')
             for queue, _ in self.get_channel_users(channel):
                 self.emit_single_user(data, queue)
 
@@ -100,7 +93,6 @@ class EventPublisher(object):
         '''
         add user to channles
         '''
-        print('channel wrhile adding user: ' + channel)
         self.users_by_channel['broadcast'].append(subscriber)
         self.users_by_channel[channel].append(subscriber)
 
@@ -136,10 +128,10 @@ if __name__ == '__main__':
         return flask.send_from_directory('./', 'index.html')
     
     @app.route('/subscribe', methods=['GET'])
+    @cross_origin(origin='*')
     def subscribe():
         username =  flask.request.args.get('username')
         channel =  flask.request.args.get('channel')
-        print(username, channel)
         return flask.Response(event_publisher.join_channel(properties=username, channel=channel),
                                 content_type='text/event-stream')
 
